@@ -80,3 +80,49 @@ curl $(minikube ip):$NODE_PORT
 kubectl get services
 # confirm its still running on the inside
 kubectl exec -ti $POD_NAME -- curl localhost:8080
+
+# 5. Scaking your app
+kubectl get deployments
+# NAME lists the names of the Deployments in the cluster.
+# READY shows the ratio of CURRENT/DESIRED replicas
+# UP-TO-DATE displays the number of replicas that have been updated to achieve the desired state.
+# AVAILABLE displays how many replicas of the application are available to your users.
+# AGE displays the amount of time that the application has been running.
+
+# to see replicated sets
+kubectl get rs
+# scale to 4 relplicas w/the scale command
+kubectl scale deployments/kubernetes-bootcamp --replicas=4
+kubectl get deployments # check the scaling was applied
+# check if no of pods changed
+kubectl get pods -o wide
+# check changes in deployments log
+kubectl describe deployments/kubernetes-bootcamp
+# load balancing: check exposed stuff
+kubect desribe services/kubernetes-bootcamp
+# create node_port env variable
+export NODE_PORT=$(kubectl get services/kubernetes-bootcamp -o go-template='{{(index .spec.ports 0).nodePort}}')
+echo NODE_PORT=$NODE_POR
+# curl the exposed ports: we hit a different node everytime curl is run
+curl $(minikube ip):$NODE_POR
+# scale down
+kubectl scale deployments/kubernetes-bootcamp --replicas=2
+kubectl get pods -o wide
+
+# 6. Update app: rolling updates with kubectl
+# set image command to update app image
+kubectl set image deployments/kubernetes-bootcamp kubernetes-bootcamp=jocatalin/kubernetes-bootcamp:v2
+kubectl get pods
+# verify update:1. check app is running. 2. create node_port env var. 3.  curl exposed ip.
+kubectl describe services/kubernetes-bootcamp
+export NODE_PORT=$(kubectl get services/kubernetes-bootcamp -o go-template='{{(index .spec.ports 0).nodePort}}')
+echo NODE_PORT=$NODE_PORT
+curl $(minikube ip):$NODE_PORT
+# or just run the rollout status command
+kubectl rollout status deployments/kubernetes-bootcamp
+kubectl describe pods
+# rollout back an update: upgrade to v10, use rollout undo command
+kubectl set image deployments/kubernetes-bootcamp kubernetes-bootcamp=gcr.io/google-samples/kubernetes-bootcamp:v10
+kubectl rollout undo deployments/kubernetes-bootcamp
+kubectl describe pods
+
